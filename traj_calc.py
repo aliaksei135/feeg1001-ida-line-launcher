@@ -70,3 +70,5 @@ def get_max_height(v, alpha):
     # print('Max height: ', max(h))
     return max(h)
 
+if __name__ == "__main__":
+    do_calc(30.2554897544, np.deg2rad(50), True)
