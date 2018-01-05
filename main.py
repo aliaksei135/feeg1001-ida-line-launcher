@@ -165,7 +165,15 @@ def test_slice():
                 Y_slice.append(y[i, j])
                 break
 
-    pl.plot(X_slice, Y_slice, 'kx-')
+    p = np.polyfit(X_slice, Y_slice, 5)
+    x_fit = np.arange(0.03, 0.1, 0.001)
+    y_fit = np.polyval(p, x_fit)
+
+    pl.plot(X_slice, Y_slice, 'kx')
+    pl.plot(x_fit, y_fit, 'r-')
+
+    pl.xlim(0.03, 0.1)
+    pl.ylim(0, 90)
     # pl.set_xlabel('Spring Deflection [m]')
     # pl.set_ylabel('Launch Angle [deg]')
 
