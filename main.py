@@ -1,4 +1,5 @@
-from struct import pack
+from pathos.multiprocessing import ProcessingPool as Pool
+import dill
 
 from matplotlib.colors import Normalize
 
@@ -35,10 +36,10 @@ def make_full_plot():
     k = 1310 #Spring const [Nm]
     startx = 0.04 # Min spring deflection
     deltax = 0.005 #Change in spring deflection per iteration
-    endx = 0.1 #Max spring deflection
-    startalpha = 22 # Min launch angle
-    deltaalpha = 1 #Change in launch angle per iteration
-    endalpha = 70 #Max launch angle
+    endx = 0.101 #Max spring deflection
+    startalpha = 20 # Min launch angle
+    deltaalpha = 5 #Change in launch angle per iteration
+    endalpha = 82 #Max launch angle
     target_dist = 5. #Distance between target and launcher
     target_height_at_dist = 7. #Height ball should be at target_dist
 
@@ -49,6 +50,7 @@ def make_full_plot():
     # Probably inaccurate to the the point of being arbitrary but still looks cool :)
     print('Expected time to complete: {} seconds = {} minutes'.format(((len(x_deflections) * len(y_alphas))/3.2), ((len(x_deflections) * len(y_alphas))/3.2)/60))
 
+    ## SINGLE THREAD ##
     i = 0
     x_count = 0
     miss_count = 0
@@ -69,30 +71,86 @@ def make_full_plot():
                 continue
             z_height_at_target[x_count, y_count] = h[target_dist_index]
             print('Completed iter', i+1)
-            # print('{}, {}, {}'.format(exit_v, h[target_dist_index], np.rad2deg(y)))
             i += 1
             y_count += 1
         x_count += 1
+    ## /> ##
 
-    if miss_count > 50:
-        print("Target Distance not achieved {} times. Optimise starting variables?".format(miss_count))
+    ## MULTITHREADED ##
+    ## Commented out non-atomic statements ##
+    ## OOO for now ##
+    # def do_iter(x_count):
+    #     y_count = 0
+    #     x = x_deflections[x_count]
+    #     zs = []
+    #     for y in y_alphas:
+    #         exit_v = spring_calc.do_calc(k, x, y)
+    #         # only need h here but the rest of can come along for the ride as well
+    #         vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, stop_at=target_dist)
+    #         try:
+    #             if max(x_dist) < target_dist:
+    #                 raise StopIteration
+    #             else:
+    #                 target_dist_index = find_nearest(x_dist, target_dist, 0.04)
+    #         except StopIteration:
+    #             print('Target Distance not achieved')
+    #             # miss_count += 1
+    #             continue
+    #         zs[x_count] = h[target_dist_index]
+    #         # print('Completed iter', i + 1)
+    #         # i += 1
+    #         y_count += 1
+    #     print('Completed iters for x={}'.format(x_count))
+    #     return zs
+    #
+    # pool = Pool(6)
+    # ar = [0 for i in range(len(x_deflections))]
+    # for x_count in range(len(x_deflections)):
+    #     z_height_at_target[x_count:] = pool.apipe(do_iter, (x_count,)).get()
+    # pool.close()
+    # pool.join()
+
+    ## /> ##
+
+    # if miss_count > 50:
+    #     print("Target Distance not achieved {} times. Optimise starting variables?".format(miss_count))
 
 
-    X, Y = np.meshgrid(x_deflections, np.rad2deg(y_alphas), indexing='xy')
+    # X, Y = np.meshgrid(x_deflections, np.rad2deg(y_alphas), indexing='xy')
+    # Z = z_height_at_target.T
+    X = x_deflections
+    Y = np.rad2deg(y_alphas)
     Z = z_height_at_target.T
 
     ## PLOTLY VERSION ##
     data = [
-        go.Surface(x=X, y=Y, z=Z)
+        go.Contour(x=X,
+                   y=Y,
+                   z=Z,
+                   colorscale='heatmap',
+                   contours=dict(
+                       start=0,
+                       end=np.floor(np.amax(z_height_at_target)),
+                       size=0.5,
+                       showlabels=True,
+                   ),
+                   line=dict(
+                       smoothing=0.8
+                   ),
+                   colorbar=dict(
+                       title='Height at Target [m]'
+                   )
+                   )
     ]
     layout = go.Layout(
             title='Traj Calculation',
             autosize=True,
-            scene=dict(
-                xaxis=dict(title='Spring Deflection [m]'),
-                yaxis=dict(title='Launch Angle [deg]'),
-                zaxis=dict(title='Height at Target Distance [m]')
-            )
+            xaxis=dict(
+                title='Spring Deflection [m]',
+                showgrid=True),
+            yaxis=dict(
+                title='Launch Angle [deg]',
+                showgrid=True),
         )
     fig = go.Figure(data=data, layout=layout)
     py.plot(fig)
