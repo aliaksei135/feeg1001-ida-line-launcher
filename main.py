@@ -27,12 +27,7 @@ def make_calc(target_height, height_at_x):
 
 
 def find_nearest(flt_array, target, tol):
-    idx = (np.abs(flt_array - target)).argmin()
-    # if np.abs(flt_array[idx] -target) > tol:
-    #     raise StopIteration
-    # else:
-    #     return idx
-    return idx
+    return (np.abs(flt_array - target)).argmin()
 
 
 def make_full_plot():
@@ -42,10 +37,10 @@ def make_full_plot():
     deltax = 0.005 #Change in spring deflection per iteration
     endx = 0.1 #Max spring deflection
     startalpha = 22 # Min launch angle
-    deltaalpha = 2 #Change in launch angle per iteration
-    endalpha = 86 #Max launch angle
+    deltaalpha = 1 #Change in launch angle per iteration
+    endalpha = 70 #Max launch angle
     target_dist = 5. #Distance between target and launcher
-    target_height_at_dist = 10. #Height ball should be at target_dist
+    target_height_at_dist = 7. #Height ball should be at target_dist
 
     x_deflections = np.arange(startx, endx, deltax)
     y_alphas = np.deg2rad(np.arange(startalpha, endalpha, deltaalpha))
@@ -82,13 +77,11 @@ def make_full_plot():
     if miss_count > 50:
         print("Target Distance not achieved {} times. Optimise starting variables?".format(miss_count))
 
-    # fig = pl.figure()
-    # ax = fig.add_subplot(121, projection='3d')
-    # ax = fig.gca(projection='3d')
 
     X, Y = np.meshgrid(x_deflections, np.rad2deg(y_alphas), indexing='xy')
     Z = z_height_at_target.T
 
+    ## PLOTLY VERSION ##
     data = [
         go.Surface(x=X, y=Y, z=Z)
     ]
@@ -102,7 +95,13 @@ def make_full_plot():
             )
         )
     fig = go.Figure(data=data, layout=layout)
+    py.plot(fig)
+    ## /> ##
 
+    ## MATPLOTLIB VERSION ##
+    # fig = pl.figure()
+    # ax = fig.add_subplot(121, projection='3d')
+    # ax = fig.gca(projection='3d')
     # ax.plot_surface(X, Y, Z, color='b', antialiased=True, linewidth=0, cmap='viridis')
     # ax.set_xlabel('Spring Deflection [m]')
     # ax.set_ylabel('Launch Angle [deg]')
@@ -127,24 +126,21 @@ def make_full_plot():
     # slice_ax.set_xlabel('Spring Deflection [m]')
     # slice_ax.set_ylabel('Launch Angle [deg]')
 
-
-    X_slice, Y_slice = [], []
-    for i in range(len(test_data.z)):
-        for j in range(len(test_data.z[i])):
-            if np.abs(test_data.z[i,j] - target_height_at_dist) < 0.1:
-                X_slice.append(test_data.x[i])
-                Y_slice.append(np.rad2deg(test_data.y[j]))
-
-    pl.plot(X_slice, Y_slice, 'kx-')
+    # SLICER
+    # X_slice, Y_slice = [], []
+    # for i in range(len(test_data.z)):
+    #     for j in range(len(test_data.z[i])):
+    #         if np.abs(test_data.z[i,j] - target_height_at_dist) < 0.1:
+    #             X_slice.append(test_data.x[i])
+    #             Y_slice.append(np.rad2deg(test_data.y[j]))
+    #
+    # pl.plot(X_slice, Y_slice, 'kx-')
     # pl.set_xlabel('Spring Deflection [m]')
     # pl.set_ylabel('Launch Angle [deg]')
 
-    # plot_url = py.plot(fig)
-
-    pl.tight_layout()
-    pl.show()
-
-
+    # pl.tight_layout()
+    # pl.show()
+    ## /> ##
 
     # target_height_index = find_nearest(z_height_at_target, target_height_at_dist, 0.04)
     # x_target_index = target_height_index % len(y_alphas)
@@ -174,16 +170,12 @@ def test_slice():
 
     pl.xlim(0.03, 0.1)
     pl.ylim(0, 90)
-    # pl.set_xlabel('Spring Deflection [m]')
-    # pl.set_ylabel('Launch Angle [deg]')
-
-    # plot_url = py.plot(fig)
 
     pl.tight_layout()
     pl.show()
 
 if __name__ == "__main__":
-    # plotly.tools.set_credentials_file(username='aliaksei135', api_key='gfEwwfj8ox9UkeaZPONl')
-    # plotly.tools.set_config_file(world_readable=True)
-    # make_full_plot()
-    test_slice()
+    plotly.tools.set_credentials_file(username='aliaksei135', api_key='gfEwwfj8ox9UkeaZPONl')
+    plotly.tools.set_config_file(world_readable=True)
+    make_full_plot()
+    # test_slice()
