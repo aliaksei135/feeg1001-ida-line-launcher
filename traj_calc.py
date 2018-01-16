@@ -18,8 +18,9 @@ nu = 1.48e-5  # kinematic viscosity of air
 g = 9.81  # acceleration due to gravity
 d = 0.04  # diameter of sphere
 S = pi * (d / 2) ** 2  # frontal area of sphere
-m = 0.015  # mass of sphere
-deltaT = 0.00001  # time step for our simulation
+m = 0.024  # mass of sphere
+deltaT = 0.0001  # time step for our simulation
+max_dist = 8. # Furthest distance that should be calculated (for efficiency)
 
 
 def do_calc(v, alpha, h, do_plot=False):
@@ -43,6 +44,8 @@ def do_calc(v, alpha, h, do_plot=False):
 
     i = 0
     while (h[i] > 0) and i + 1 < l:
+        if x[i] > max_dist:
+            break
         vY[i + 1] = vY[i] - (0.5 * rho * vY[i] ** 2 * S * cd[i] / m) * deltaT  # vel. change due to vertical drag
         vX[i + 1] = vX[i] - (0.5 * rho * vX[i] ** 2 * S * cd[i] / m) * deltaT  # vel. change due to horizontal drag
         vY[i + 1] = vY[i + 1] - g * deltaT  # vel. change due to gravity
@@ -60,11 +63,6 @@ def do_calc(v, alpha, h, do_plot=False):
 
     return vX, vY, x, h
 
-
-def get_max_height(v, alpha):
-    vX, vY, x, h = do_calc(v, alpha)
-    # print('Max height: ', max(h))
-    return max(h)
 
 if __name__ == "__main__":
     do_calc(30.2554897544, np.deg2rad(50), True)
