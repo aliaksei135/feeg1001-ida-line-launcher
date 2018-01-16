@@ -55,13 +55,13 @@ def make_full_plot(multithread=True):
     #     x_deflections, y_alphas, z_height_at_target
     #Constants
     k = 1310 #Spring const [Nm]
-    startx = 0.04 # Min spring deflection
+    startx = 0.02 # Min spring deflection
     deltax = 0.01 #Change in spring deflection per iteration
-    endx = 0.101 #Max spring deflection
-    startalpha = 20 # Min launch angle
-    deltaalpha = 5 #Change in launch angle per iteration
-    endalpha = 82 #Max launch angle
-    target_dist = 5. #Distance between target and launcher
+    endx = 0.16 #Max spring deflection
+    startalpha = 25 # Min launch angle
+    deltaalpha = 1 #Change in launch angle per iteration
+    endalpha = 71 #Max launch angle
+    target_dist = 4. #Distance between target and launcher
     init_height = 0.1 #Initial height of ball at point of launch
     grid_height = 0.45 #Height of target grid
 
@@ -84,7 +84,7 @@ def make_full_plot(multithread=True):
                 # only need h here but the rest of can come along for the ride as well
                 vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, init_height)
                 try:
-                    if max(x_dist) < target_dist:
+                    if max(x_dist) < target_dist - 1:
                         raise StopIteration
                     else:
                         h1, h2 = np.split(h, 2)
@@ -107,7 +107,7 @@ def make_full_plot(multithread=True):
     else:
         # Probably inaccurate to the the point of being arbitrary but still looks cool :)
         print('[MULTITHREAD] Expected time to complete: {} seconds = {} minutes'.format(
-            ((len(x_deflections) * len(y_alphas)) / 7.4), ((len(x_deflections) * len(y_alphas)) / 8.4) / 60))
+            ((len(x_deflections) * len(y_alphas)) / 7.4), ((len(x_deflections) * len(y_alphas)) / 7.4) / 60))
         ## MULTITHREADED ##
         pool = Pool(8)
         res = [pool.apply_async(do_iter, (count, x_val, y_alphas[0:], target_dist, k, init_height, grid_height)) for count, x_val in enumerate(x_deflections)]
@@ -136,21 +136,46 @@ def make_full_plot(multithread=True):
                        smoothing=0.8
                    ),
                    colorbar=dict(
-                       title='Height at Target [m]'
+                       title='Distance from Launch [m]',
+                       x=0.4
                    )
+                   ),
+        go.Contour(x=X,
+                   y=Y,
+                   z=Z-target_dist,
+                   colorscale='heatmap',
+                   contours=dict(
+                       size=0.05,
+                       showlabels=True,
+                   ),
+                   line=dict(
+                       smoothing=0.8
+                   ),
+                   colorbar= dict(
+                           title='Distance from Target [m]',
+                           x=1
+                           )
                    )
     ]
-    layout = go.Layout(
-            title='Traj Calculation',
-            autosize=True,
-            xaxis=dict(
-                title='Spring Deflection [m]',
-                showgrid=True),
-            yaxis=dict(
-                title='Launch Angle [deg]',
-                showgrid=True),
-        )
-    fig = go.Figure(data=data, layout=layout)
+#    layout = go.Layout(
+#            title='Traj Calculation',
+#            autosize=True,
+#            xaxis=dict(
+#                title='Spring Deflection [m]',
+#                domain=[0,0.5],
+#                showgrid=True),
+#            yaxis=dict(
+#                title='Launch Angle [deg]',
+#                showgrid=True),
+#            xaxis2 = dict(
+#                    domain=[0.55, 1]),
+#            yaxis2 = dict(
+#                    anchor='x2'),
+#        )
+#    fig = go.Figure(data=data, layout=layout)
+    fig = plotly.tools.make_subplots(rows=1, cols=2, horizontal_spacing=0.2)
+    fig.append_trace(data[0], 1, 1)
+    fig.append_trace(data[1], 1, 2)
     py.plot(fig)
     ## /> ##
 
@@ -212,7 +237,6 @@ def test_slice():
     for i in range(len(z)):
         for j in range(len(z[i])):
             if  np.abs(z[i, j] - 7.) < 0.08:
-                a =  i % len(x)
                 X_slice.append(x[i, j])
                 Y_slice.append(y[i, j])
                 break
@@ -233,5 +257,5 @@ def test_slice():
 if __name__ == "__main__":
     plotly.tools.set_credentials_file(username='aliaksei135', api_key='gfEwwfj8ox9UkeaZPONl')
     plotly.tools.set_config_file(world_readable=True)
-    make_full_plot()
+    make_full_plot(multithread=False)
     # test_slice()
