@@ -19,13 +19,13 @@ g = 9.81  # acceleration due to gravity
 d = 0.04  # diameter of sphere
 S = pi * (d / 2) ** 2  # frontal area of sphere
 m = 0.024  # mass of sphere
-deltaT = 0.0001  # time step for our simulation
+deltaT = 0.00001  # time step for our simulation
 max_dist = 8. # Furthest distance that should be calculated (for efficiency)
 
 
 def do_calc(v, alpha, h, do_plot=False):
     # initialize arrays
-    l = round(5 / deltaT)
+    l = round(1 / deltaT)
     # now initialize arrays for quantities of interest
     h = np.zeros(l)  # height of sphere
     x = np.zeros(l)  # horizontal ordinate of sphere

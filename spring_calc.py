@@ -20,7 +20,7 @@ mr = 0.05 # mass of internal launch rig
 def do_calc(k, init_x, alpha, do_plot=False):
     assert isinstance(init_x, np.float64)
 
-    deltaT = 0.0001  # We'll need a much smaller time step
+    deltaT = 0.00001  # We'll need a much smaller time step
     l = np.round(1 / deltaT)
 
     v = np.zeros(np.int(l))  # velocity

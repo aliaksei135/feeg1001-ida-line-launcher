@@ -30,20 +30,23 @@ def do_iter(x_count, x, ys, target_dist, k, init_height, grid_height):
         # only need h here but the rest of can come along for the ride as well
         vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, init_height)
         try:
-            if max(x_dist) < target_dist:
+            if max(h) < grid_height:
+                print('Grid height not reached')
+                continue
+            # if max(x_dist) < target_dist - 2.:
+            #     raise StopIteration
+            top_traj_idx = np.argmax(h)
+            h1, h2 = h[:top_traj_idx], h[top_traj_idx:]
+            target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
+            if x_dist[target_dist_index] < target_dist:
                 raise StopIteration
-            else:
-                h1, h2 = np.split(h, 2)
-                target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
-                if x_dist[target_dist_index] < target_dist:
-                    raise StopIteration
         except StopIteration:
             print('Target Distance not achieved')
             zs.append(0)
             continue
         zs.append(x_dist[target_dist_index])
         y_count += 1
-    print('Completed iters for x={}'.format(x_count))
+    print('Completed iters for x={}m'.format(x))
     return zs
 
 
@@ -55,18 +58,18 @@ def make_full_plot(multithread=True):
     #     x_deflections, y_alphas, z_height_at_target
     #Constants
     k = 1310 #Spring const [Nm]
-    startx = 0.02 # Min spring deflection
+    startx = 0.04 # Min spring deflection
     deltax = 0.01 #Change in spring deflection per iteration
-    endx = 0.16 #Max spring deflection
-    startalpha = 25 # Min launch angle
+    endx = 0.1 #Max spring deflection
+    startalpha = 30 # Min launch angle
     deltaalpha = 1 #Change in launch angle per iteration
-    endalpha = 71 #Max launch angle
-    target_dist = 4. #Distance between target and launcher
+    endalpha = 70 #Max launch angle
+    target_dist = 5. #Distance between target and launcher
     init_height = 0.1 #Initial height of ball at point of launch
     grid_height = 0.45 #Height of target grid
 
-    x_deflections = np.arange(startx, endx, deltax)
-    y_alphas = np.deg2rad(np.arange(startalpha, endalpha, deltaalpha))
+    x_deflections = np.arange(startx, endx + 0.01, deltax)
+    y_alphas = np.deg2rad(np.arange(startalpha, endalpha + 1, deltaalpha))
     z_dist = np.zeros((len(x_deflections), len(y_alphas)), dtype=np.float64)
 
     if(not multithread):
@@ -84,13 +87,17 @@ def make_full_plot(multithread=True):
                 # only need h here but the rest of can come along for the ride as well
                 vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, init_height)
                 try:
-                    if max(x_dist) < target_dist - 1:
+                    if max(h) < grid_height:
+                        print('Grid height not reached')
+                        miss_count += 1
+                        continue
+                    if max(x_dist) < target_dist - 2.:
                         raise StopIteration
-                    else:
-                        h1, h2 = np.split(h, 2)
-                        target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
-                        if x_dist[target_dist_index] < target_dist:
-                            raise StopIteration
+                    top_traj_idx = np.argmax(h)
+                    h1, h2 = h[:top_traj_idx], h[top_traj_idx:]
+                    target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
+                    if x_dist[target_dist_index] < target_dist:
+                        raise StopIteration
                 except StopIteration:
                     print('Target Distance not achieved')
                     miss_count += 1
@@ -133,7 +140,7 @@ def make_full_plot(multithread=True):
                        showlabels=True,
                    ),
                    line=dict(
-                       smoothing=0.8
+                       smoothing=1
                    ),
                    colorbar=dict(
                        title='Distance from Launch [m]',
@@ -149,7 +156,7 @@ def make_full_plot(multithread=True):
                        showlabels=True,
                    ),
                    line=dict(
-                       smoothing=0.8
+                       smoothing=1
                    ),
                    colorbar= dict(
                            title='Distance from Target [m]',
@@ -176,7 +183,7 @@ def make_full_plot(multithread=True):
     fig = plotly.tools.make_subplots(rows=1, cols=2, horizontal_spacing=0.2)
     fig.append_trace(data[0], 1, 1)
     fig.append_trace(data[1], 1, 2)
-    py.plot(fig)
+    py.plot(fig, filename='plot')
     ## /> ##
 
     ## MATPLOTLIB VERSION ##
@@ -257,5 +264,5 @@ def test_slice():
 if __name__ == "__main__":
     plotly.tools.set_credentials_file(username='aliaksei135', api_key='gfEwwfj8ox9UkeaZPONl')
     plotly.tools.set_config_file(world_readable=True)
-    make_full_plot(multithread=False)
+    make_full_plot(multithread=True)
     # test_slice()
