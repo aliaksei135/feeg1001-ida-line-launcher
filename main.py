@@ -22,23 +22,26 @@ import traj_calc
 def find_nearest(flt_array, target, tol):
     return (np.abs(flt_array - target)).argmin()
 
-def do_iter(x_count, x, ys, target_dist, k):
+def do_iter(x_count, x, ys, target_dist, k, init_height, grid_height):
     y_count = 0
     zs = []
     for y in ys:
         exit_v = spring_calc.do_calc(k, x, y)
         # only need h here but the rest of can come along for the ride as well
-        vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, stop_at=target_dist)
+        vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, init_height)
         try:
             if max(x_dist) < target_dist:
                 raise StopIteration
             else:
-                target_dist_index = find_nearest(x_dist, target_dist, 0.04)
+                h1, h2 = np.split(h, 2)
+                target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
+                if x_dist[target_dist_index] < target_dist:
+                    raise StopIteration
         except StopIteration:
             print('Target Distance not achieved')
             zs.append(0)
             continue
-        zs.append(h[target_dist_index])
+        zs.append(x_dist[target_dist_index])
         y_count += 1
     print('Completed iters for x={}'.format(x_count))
     return zs
@@ -53,22 +56,23 @@ def make_full_plot(multithread=True):
     #Constants
     k = 1310 #Spring const [Nm]
     startx = 0.04 # Min spring deflection
-    deltax = 0.005 #Change in spring deflection per iteration
+    deltax = 0.01 #Change in spring deflection per iteration
     endx = 0.101 #Max spring deflection
     startalpha = 20 # Min launch angle
     deltaalpha = 5 #Change in launch angle per iteration
     endalpha = 82 #Max launch angle
     target_dist = 5. #Distance between target and launcher
-    target_height_at_dist = 7. #Height ball should be at target_dist
+    init_height = 0.1 #Initial height of ball at point of launch
+    grid_height = 0.45 #Height of target grid
 
     x_deflections = np.arange(startx, endx, deltax)
     y_alphas = np.deg2rad(np.arange(startalpha, endalpha, deltaalpha))
-    z_height_at_target = np.zeros((len(x_deflections), len(y_alphas)), dtype=np.float64)
-
-    # Probably inaccurate to the the point of being arbitrary but still looks cool :)
-    print('[MULTITHREAD] Expected time to complete: {} seconds = {} minutes'.format(((len(x_deflections) * len(y_alphas))/8.4), ((len(x_deflections) * len(y_alphas))/8.4)/60))
+    z_dist = np.zeros((len(x_deflections), len(y_alphas)), dtype=np.float64)
 
     if(not multithread):
+        # Probably inaccurate to the the point of being arbitrary but still looks cool :)
+        print('Expected time to complete: {} seconds = {} minutes'.format(
+            ((len(x_deflections) * len(y_alphas)) / 3.2), ((len(x_deflections) * len(y_alphas)) / 3.2) / 60))
         ## SINGLE THREAD ##
         i = 0
         x_count = 0
@@ -78,17 +82,20 @@ def make_full_plot(multithread=True):
             for y in y_alphas:
                 exit_v = spring_calc.do_calc(k, x, y)
                 # only need h here but the rest of can come along for the ride as well
-                vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, stop_at=target_dist)
+                vX, vY, x_dist, h = traj_calc.do_calc(exit_v, y, init_height)
                 try:
                     if max(x_dist) < target_dist:
                         raise StopIteration
                     else:
-                        target_dist_index = find_nearest(x_dist, target_dist, 0.04)
+                        h1, h2 = np.split(h, 2)
+                        target_dist_index = find_nearest(h2, grid_height, 0.05) + (len(h1) - 1)
+                        if x_dist[target_dist_index] < target_dist:
+                            raise StopIteration
                 except StopIteration:
                     print('Target Distance not achieved')
                     miss_count += 1
                     continue
-                z_height_at_target[x_count, y_count] = h[target_dist_index]
+                z_dist[x_count, y_count] = x_dist[target_dist_index]
                 print('Completed iter', i+1)
                 i += 1
                 y_count += 1
@@ -98,17 +105,20 @@ def make_full_plot(multithread=True):
             print("Target Distance not achieved {} times. Optimise starting variables?".format(miss_count))
         ## /> ##
     else:
+        # Probably inaccurate to the the point of being arbitrary but still looks cool :)
+        print('[MULTITHREAD] Expected time to complete: {} seconds = {} minutes'.format(
+            ((len(x_deflections) * len(y_alphas)) / 7.4), ((len(x_deflections) * len(y_alphas)) / 8.4) / 60))
         ## MULTITHREADED ##
         pool = Pool(8)
-        res = [pool.apply_async(do_iter, (count, x_val, y_alphas[0:], target_dist, k)) for count, x_val in enumerate(x_deflections)]
+        res = [pool.apply_async(do_iter, (count, x_val, y_alphas[0:], target_dist, k, init_height, grid_height)) for count, x_val in enumerate(x_deflections)]
         for idx, zs in enumerate(res):
-            z_height_at_target[idx] = res[idx].get()
+            z_dist[idx] = res[idx].get()
         ## /> ##
 
 
     X = x_deflections
     Y = np.rad2deg(y_alphas)
-    Z = z_height_at_target.T
+    Z = z_dist.T
 
     ## PLOTLY VERSION ##
     data = [
@@ -118,7 +128,7 @@ def make_full_plot(multithread=True):
                    colorscale='heatmap',
                    contours=dict(
                        start=0,
-                       end=np.floor(np.amax(z_height_at_target)),
+                       end=np.floor(np.amax(z_dist)),
                        size=0.5,
                        showlabels=True,
                    ),

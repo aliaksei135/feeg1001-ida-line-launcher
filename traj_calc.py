@@ -19,13 +19,11 @@ g = 9.81  # acceleration due to gravity
 d = 0.04  # diameter of sphere
 S = pi * (d / 2) ** 2  # frontal area of sphere
 m = 0.015  # mass of sphere
-deltaT = 0.0001  # time step for our simulation
+deltaT = 0.00001  # time step for our simulation
 
 
-def do_calc(v, alpha, do_plot=False, stop_at=7):
+def do_calc(v, alpha, h, do_plot=False):
     # initialize arrays
-    # we expect the sphere to be in the air no more than three seconds
-    # so set our array to be of length 3/deltaT (this is quite crude, but works!)
     l = round(5 / deltaT)
     # now initialize arrays for quantities of interest
     h = np.zeros(l)  # height of sphere
@@ -53,8 +51,6 @@ def do_calc(v, alpha, do_plot=False, stop_at=7):
         Re[i + 1] = sqrt(vX[i + 1] ** 2 + vY[i + 1] ** 2) * d / nu  # Reynolds number
         cd[i + 1] = spherecd(Re[i + 1])  # drag coefficient
         i = i + 1
-        # if x[i] > stop_at :
-        #     break
 
     if do_plot:
         pl.plot(x[0:i], h[0:i])
